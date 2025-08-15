@@ -2,7 +2,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { initializeDatabase } = require('../database');
+const { getDb } = require('../database');
 const router = express.Router();
 
 const generateToken = (id, username, role) => {
@@ -11,8 +11,8 @@ const generateToken = (id, username, role) => {
 
 router.post('/login', async (req, res) => {
     try {
-        const { db } = await initializeDatabase();
-        const { username, password } = req.body;
+ const db = await getDb();       
+  const { username, password } = req.body;
 
         const stmt = db.prepare('SELECT * FROM users WHERE username = :username');
         const user = stmt.getAsObject({ ':username': username });

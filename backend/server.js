@@ -1,9 +1,9 @@
-// backend/server.js - GIỮ NGUYÊN NHƯ SAU
-require('dotenv').config();
+// backend/server.js - PHIÊN BẢN SỬA LỖI CUỐI CÙNG
+require('dotenv').config(); // PHẢI NẰM Ở ĐÂY
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('./database');
+// Dòng require('./database') đã được xóa
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,9 +11,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Những dòng này là nơi có thể phát sinh lỗi nếu file được require không export đúng
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users')); // Dòng 14 gây lỗi
+app.use('/api/users', require('./routes/users'));
 app.use('/api/barcode', require('./routes/barcode'));
 
 const publicPath = path.join(__dirname, '..', 'public');
