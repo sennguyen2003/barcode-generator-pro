@@ -1,0 +1,155 @@
+-Alabama(NONE-X)- AL-ICN(DONE)1 ko có DD1
+-Alaska (DONE) - AK-ICN(DONE)1
+-Arizona ((NONE)-AZ-ICN(DONE)
+-Arkansas (DONE)- AR-ICN(DONE)
+-California (DONE)- CA-ICN(DONE)
+-Colorado (DONE)-CO ( none ICN)-> ko có ICN 
+-Connecticut (DONE)-CT- ICN(DONE)
+-Delaware(DONE)-DE-ICN(DONE)
+- Florida(DONE)-FL-ICN(DONE)
+-Georgia(NONE) GA -(DONE)
+-Hawaii(NONE) HI-(DONE)
+-Idaho(DONE)-ID- ICN(DONE)
+-Illinois(DONE)-IL-ICN(done)
+-Indiana(DONE)-IN(DONE)
+-IOWA(DONE)) IA 9 digits + first letter of last name + first letter of first name+4digits+sex+ expiry date (MMDDYY) + R.
+-Kansas(DONE) KS
+-Kentucky (DONE)-KY(DONE)
+- LOUISIANA (DONE) LA
+-Maine(DONE)-ME(DONE)
+-Maryland (DONE) MD
+-Massachusetts (DONE)-ICN(DONE) MA(Issue date + revision date You can click on the calculator icon to calculate DD automatically!)
+- Michigan (DONE)-MI-ICN(DONE)(13 random numbers) (NOT DD)
+-Minnesota(DONE)-MN-ICN(DONE)(7 zeros + 7 random digits. You can click on the calculator icon to calculate DD automatically!)
+-Mississippi(DONE)-MS-ICN(DONE)> dựa vào Họ tên,ngày tháng ISS,EXP,BOD(22ký tự)
+-Missouri(DONE)-MO-ICN(DONE)(First 2 digits issue year (YY) + 14+4digits+00'+2 digits. You can click on the calculator icon to calculate DD automatically!)
+-Montana(DONE)-MT-ICN((DONE)(Issue data in YYYMMDD format + 12 digits. You can click on the calculator icon to calculate DD automatically!)
+-Nebraska(done)-NE-icn(DONE)
+-Nevada (DONE)-NV-ICN(DONE)('000 1' + 17 random digits. You can click on the calculator icon to calculate DD automatically!)
+-New Hampshire (DONE DD<ICN )-NH (0+7 random numbers)
+-New Jersey(DONE)-NJ-ICN(DONE)(Option 1 + issue year (YYY) + number of days from the beginnig of year to issue date + '0000' +4 digits. You can click on the calculator icon to calculate DD automatically!)
+-New Mexico-NM-ICN(DONE) ->NOT DD
+-New York(DONE)-NY->ICN(NOT)(10 random characters.You can click on the calculator icon to calculate DD automatically!)
+-North Carolina(DONE)-NC-ICN(DONE)(001+7 random numbers)
+-North Dakota(DONE,DD,ICN)-ND
+-Ohio (DONE)-OH-ICN(DONE) (0+ 8 random numbers)
+-Oklahoma (DONE)-OK-ICN(DONE)(Documunet number + Date of birth (MMDDYY) + issue date (MMDDYY) + letter. You can click on the calculator icon to calculate DD automatically!)
+- Oregon (done)) OR
+-Pennsylvania (DONE DD,ICN, DL numbert)-PA
+-Rhode Island (DONE)-RI-ICN(DONE)(7 random digits.You can click on the calculator icon to calculate DD automatically!)
+-South carolia(DONE)SC 
+	-South Dakota (DONE)DL:8 digits.ICN:042000 + 10 digits,DD:
+-Tennessee (DONE)-TN-ICN(DONE)
+-Texas-TX-ICN(DONE)(20 digits with custom algorithm. Please click on the calculator icon to calculate DD automatically!)
+-Utah(DONE)-UT-ICN(DONE)(8 random digits. You can click on the calculator icon to calculate DD automatically!)
+-Vermont(DONE)DD:Issue date (MMDDYY)+4 digits + DL number.
+-Virginia(DONE)-ICN(DONE)VA('O' + 8 digits. You can click on the calculator icon to calculate DD automatically!)
+-Washington (DONE DD,ICN)-WA
+- Washington DC (NONE)
+- West Virginia(DONE)-WV-ICN(DONE)(Date of birth (MMDDYY) + First letter of last name + first letter of first name + expiry data (YYDD). You can click on the calculator icon to calculate DD automatically!)
+-Wisconsin (DONE)-WI-ICN(DONE)('OT + first letter of Last name + issue date (YYYMMDD) 8 digits. You can click on the calculator icon to calculate DD automatically!)
+-Wyoming (DONE)-iCN (DONE)WY(10000 + 5 random digits)
+
+Câu trả lời trực tiếp: Cả hai đều không phải là "mới nhất". Chuẩn AAMVA mới nhất (từ khoảng 2016 trở đi) đã loại bỏ hoàn toàn cấu trúc DL0031.
+Tuy nhiên, trong hai lựa chọn này:
+31 là mã từ một chuẩn cũ hơn nhưng được sử dụng rất rộng rãi và hợp lệ.
+42 gần như chắc chắn là một lỗi hoặc một cách triển khai không theo chuẩn.
+Hãy cùng phân tích chi tiết:
+Sự phát triển của chuẩn AAMVA Header
+Chuẩn Cũ (ví dụ: AAMVA CDS 2005, 2009, 2013):
+Trong các phiên bản này, header của subfile (tệp con) cần chỉ định 3 thông tin: Loại subfile, Vị trí bắt đầu (Offset), và Độ dài (Length).
+Cấu trúc của nó là: DL + Offset + Length.
+0031 (thập phân) chính là giá trị của 0x1F (thập lục phân). Đây là mã ASCII cho ký tự điều khiển US (Unit Separator). Theo chuẩn, vị trí bắt đầu của subfile đầu tiên chính là ký tự này.
+Vì vậy, DL00310246 có nghĩa là: "Đây là một subfile Bằng lái xe (DL), bắt đầu tại vị trí 0031, và có tổng độ dài là 0246 bytes."
+Đây là lý do code Python của bạn dùng 31 và hoạt động tốt, vì nó tuân thủ một chuẩn cũ nhưng rất phổ biến mà máy quét của bạn hiểu được.
+DL0042... là gì?
+42 (thập phân) là 0x2A (thập lục phân), tương ứng với ký tự dấu sao *.
+Ký tự này không có ý nghĩa tiêu chuẩn ở vị trí khai báo offset của subfile AAMVA.
+Gần như chắc chắn đây là một lỗi trong code JavaScript gốc của bạn. Máy quét không hiểu 42 là gì, nên nó đã phân tích sai cấu trúc và bỏ qua dữ liệu.
+Chuẩn Mới Nhất (ví dụ: AAMVA CDS v2.0 - từ 2016):
+Chuẩn mới nhất đã đơn giản hóa header để loại bỏ sự phức tạp của việc khai báo offset.
+Bây giờ, header chỉ cần chỉ định Loại subfile, Số lượng mục (Number of entries), và Độ dài (Length).
+Cấu trúc mới có dạng: DL + Number of Entries + Length.
+Ví dụ: DL00010246 có nghĩa là: "Đây là subfile Bằng lái xe (DL), chứa 0001 mục, và có tổng độ dài là 0246 bytes."
+Bạn có thể thấy, cả 31 và 42 đều không còn được sử dụng trong chuẩn mới nhất.
+
+Bảng so sánh
+Tiêu chí	DL0031... 	(Code Python của bạn)		DL0042... (Code JS cũ của bạn)			Chuẩn AAMVA Mới Nhất
+Phiên bản	Chuẩn cũ (ví dụ: 2005-2013)				Không 									theo chuẩn	Chuẩn mới (từ 2016)
+Cấu trúc	DL + Offset + Length					Không xác định							DL + Entries + Length
+Ý nghĩa của số	31 là offset chuẩn					42 không có ý nghĩa chuẩn				Không dùng 31 hay 42
+Tình trạng	Hợp lệ nhưng đã cũ						Lỗi / Không hợp lệ							Hợp lệ và mới nhất
+
+Kết luận cho trường hợp của bạn:
+Bạn nên sử dụng 31.
+Lý do rất đơn giản: Đó là định dạng mà máy quét của bạn được lập trình để hiểu. Mặc dù không phải là chuẩn mới nhất trên thế giới, nhưng nó là chuẩn chính xác cho hệ thống của bạn. Việc code Python dùng 31 và chạy được là bằng chứng không thể chối cãi.
+Giải pháp 1 (Khuyên dùng ngay lập tức): Dịch chính xác 100% logic từ file Python của bạn sang JavaScript. Giải pháp này đảm bảo sẽ hoạt động với máy quét hiện tại của bạn vì nó tạo ra kết quả giống hệt.
+Giải pháp 2 (Chuẩn mới nhất): Viết lại hàm theo đúng chuẩn AAMVA hiện đại. Code sẽ sạch sẽ hơn, nhưng có một rủi ro nhỏ là máy quét cũ của bạn có thể không tương thích.
+Giải pháp 2: Code theo chuẩn AAMVA mới nhất (Khuyến nghị cho tương lai)
+Phiên bản này tuân thủ chuẩn AAMVA Card Design Standard (CDS) mới nhất. Nó đơn giản hơn, dễ đọc hơn và không dùng mã 31 nữa.
+CẢNH BÁO: Hãy thử nghiệm kỹ giải pháp này, vì có thể máy quét của bạn được thiết kế cho chuẩn cũ và sẽ không đọc được định dạng mới này.
+Generated javascript
+// === BẮT ĐẦU CODE GIẢI PHÁP 2 (CHUẨN MỚI NHẤT) ===
+
+function generateAamvaDataString(record_data) {
+    // 1. TẠO BODY DỮ LIỆU TRƯỚC ĐỂ TÍNH ĐỘ DÀI
+    const data_elements = [
+        // Sắp xếp lại theo nhóm logic để dễ đọc, DAQ vẫn ở đầu
+        // Personal
+        ['DAQ', 'customer_id'], ['DCS', 'family_name'], ['DAC', 'first_name'], ['DAD', 'middle_name'], ['DCU', 'name_suffix'],
+        // Dates
+        ['DBB', 'dob'], ['DBA', 'expiry_date'], ['DBD', 'issue_date'],
+        // Physical
+        ['DBC', 'sex'], ['DAY', 'eye_color'], ['DAU', 'height'], ['DAZ', 'hair_color'],
+        // Address
+        ['DAG', 'street1'], ['DAH', 'street2'], ['DAI', 'city'], ['DAJ', 'state'], ['DAK', 'postal_code'],
+        // Licensing
+        ['DCA', 'vehicle_class'], ['DCB', 'restrictions'], ['DCD', 'endorsements'],
+        // System & Other
+        ['DCF', 'document_discriminator'], ['DCG', 'country'], ['DCK', 'inventory_control'],
+        // Các trường khác có thể thêm vào đây theo thứ tự chuẩn
+    ];
+
+    let subfile_parts = [];
+    for (const [element_id, field_name] of data_elements) {
+        let value = String(record_data[field_name] || '').trim();
+        if (value) {
+            subfile_parts.push(element_id + value);
+        }
+    }
+    const subfile_body = subfile_parts.join('\n');
+
+    // 2. TÍNH TOÁN ĐỘ DÀI CHÍNH XÁC CỦA SUBFILE
+    // Độ dài subfile = độ dài của body + 1 ký tự kết thúc <CR> (\u000d)
+    const accurate_dl_length = subfile_body.length + 1;
+    const dl_length_str = String(accurate_dl_length).padStart(4, '0');
+
+    // 3. TẠO HEADER CHUẨN MỚI
+    // Header chỉ chứa thông tin chung, không chứa thông tin về subfile
+    const file_header = `@\n\u001e\u000dANSI ${String(record_data.iin || '').padEnd(6, ' ')}` +
+                      `${String(record_data.aamva_version || '10').padStart(2, '0')}` +
+                      `${String(record_data.jurisdiction_version || '00').padStart(2, '0')}` +
+                      `${String(record_data.subfile_count || '01').padStart(2, '0')}`;
+
+    // 4. TẠO SUBFILE HOÀN CHỈNH
+    // Cấu trúc: Mã subfile (DL) + Độ dài + Body + Ký tự kết thúc
+    const subfile = `DL${dl_length_str}${subfile_body}\u000d`;
+    
+    // 5. GHÉP HEADER VÀ SUBFILE
+    const final_data_string = file_header + subfile;
+
+    return final_data_string;
+}
+
+Header và Body nối liền (Quan trọng nhất):
+Trước đây: finalString = fullHeader + LF + fullBody + CR; (Có LF thừa)
+Bây giờ: finalString = preamble + fileHeader + directory + fullBody;
+Giải thích: Logic mới đảm bảo header (bao gồm cả thư mục subfile) và body dữ liệu được nối liền với nhau thành một chuỗi duy nhất, không có bất kỳ ký tự phân tách nào ở giữa. Máy quét giờ đây sẽ nhảy đến đúng vị trí bắt đầu của subfile DL.
+Tính toán Offset và Length Chính xác:
+Logic tính toán offset và length giờ đây đã đúng. Nó tính toán chính xác vị trí bắt đầu của toàn bộ khối dữ liệu (bodyStartOffset) và sau đó tính toán vị trí và độ dài của từng subfile (DL, ZC) một cách tuần tự.
+Độ dài của mỗi subfile (sf.length) cũng được tính toán chính xác, bao gồm cả ký tự kết thúc phân đoạn (CR) của subfile đó.
+Cấu trúc Subfile Chuẩn:
+Mỗi subfile (ví dụ, toàn bộ khối dữ liệu của DL) giờ đây kết thúc bằng một ký tự <CR> (Segment Terminator) duy nhất, đúng như tiêu chuẩn.
+Toàn bộ chuỗi dữ liệu kết thúc bằng ký tự <CR> của subfile cuối cùng, không có ký tự thừa nào nữa.
+Giữ lại các Cải tiến:
+Tất cả các tính năng mới từ phiên bản trước (như các trường ZC, nhập liệu Excel, tạo dữ liệu ngẫu nhiên) đều được giữ lại và hoạt động tốt với cấu trúc mới.

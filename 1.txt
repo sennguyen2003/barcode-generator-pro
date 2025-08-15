@@ -1,0 +1,96 @@
+sửa cho AK ICN:function AK_calculate_ICN() {
+    document.getElementById('inputICN').value = "1000" + getRandomNumericString(6);
+}, AZ cả về DD cả về ICN:function AZ_makeRandomDOE() {
+    var dateOfBirth = document.getElementById("inputBrithDate").value;
+    if (!dateOfBirth) {
+        makeRandomDOB();
+        dateOfBirth = document.getElementById("inputBrithDate").value;
+    }
+
+    if (dateOfBirth.length > 4) {
+        date = dateOfBirth.slice(0,4);
+    } else { return; }
+
+    var dateOfIssue = document.getElementById("inputIssueDate").value;
+
+    dob_year = parseInt(dateOfBirth.slice(-4));
+    issue_year = (dob_year + 65).toString();
+
+    document.getElementById("inputExpiryDate").value = dateOfBirth.slice(0,4) + issue_year;
+}
+
+function AZ_calculate_documentNumber() {
+    document.getElementById('inputDocumentNumber').value = "D" + getRandomNumericString(8);
+}
+
+function AZ_calculate_ICN() {
+    var issueDate = document.getElementById("inputIssueDate").value;
+    if (issueDate.length != 8) {
+        showInputDataAlert("ICN calculation error. Incorrect issue date!")
+        return;
+    }
+
+    document.getElementById("inputICN").value = issueDate.slice(-2) + getNumberOfDaysFromBeginnigOfYear(issueDate) + "AZ00" + getRandomNumericString(7) + "0301"
+}
+
+function AZ_2023_calculate_ICN() {
+    document.getElementById("inputICN").value = '48' + getRandomNumericString(9);
+}
+
+function AZ_calculate_DD() {
+    var birthDate = document.getElementById("inputBrithDate").value;
+    if (birthDate.length != 8) {
+        showInputDataAlert("DD calculation error. Incorrect birth date!")
+        return;
+    }
+
+    var firstName = document.getElementById("inputFirstName").value;
+    if (!firstName.length) {
+        showInputDataAlert("DD calculation error. Incorrect First name!")
+        return;
+    }
+
+    var lastName = document.getElementById("inputLastName").value;
+    if (!lastName.length) {
+        showInputDataAlert("DD calculation error. Incorrect Last name!")
+        return;
+    }
+
+    document.getElementById("inputDD").value = getRandomNumericString(4) + getRandomLetter() + getRandomLetter()
+    + getRandomNumericString(3) + lastName.slice(0,1) + getRandomNumericString(4) + firstName.slice(0,1) + birthDate.slice(-1);
+}
+, bang AR tính ICN:02101 + 11 digtis, sửa DL number có 9 số random, bang CT: DL number:Month of birth:01-12(odd
+birth year) or 13-24 (even
+birth year) + 7 random digits
+You can click on the
+calculator icon to calculate
+number automatically!, ICN: ICN:DL Number + 'CT + random
+digit + 4 random letters +
+"01", bang DE: DL number: 7 số random và ICN:0110+12digits, bang ID sửa DL number và ICN:function ID_calculate_documentNumber() {
+    document.getElementById('inputDocumentNumber').value = getRandomLetter() + getRandomLetter() + getRandomNumericString(6) + getRandomLetter();
+}
+
+function ID_calculate_ICN() {
+    document.getElementById("inputICN").value = "000" + getRandomNumericString(7);
+}
+
+function ID_calculate_DD() {
+    var issueDate = document.getElementById("inputIssueDate").value;
+    if (issueDate.length != 8) {
+        showInputDataAlert("DD calculation error. Incorrect issue date!")
+        return;
+    }
+
+    document.getElementById("inputDD").value = "010" + issueDate.slice(-2) + getRandomNumericString(3) + "00" + getRandomNumericString(2);
+}
+
+function ID_calculate_ICN_2023() {
+    document.getElementById("inputICN").value = "MT" + getRandomNumericString(6) + "H" + getRandomNumericString(6) + "001";
+}
+
+function ID_calculate_DD_2023() {
+    document.getElementById("inputDD").value = getRandomNumericString(15)
+}
+
+
+

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Barcode Generator</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card { width: 100%; max-width: 400px; }
+        .login-card h2 { text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .error-message { color: var(--error-color); text-align: center; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="card login-card">
+        <h2><i class="fa-solid fa-barcode"></i> Barcode Generator</h2>
+        <h3>Đăng nhập</h3>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="button-full-width">Đăng nhập</button>
+            <p id="error-message" class="error-message"></p>
+        </form>
+    </div>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> <!-- Font Awesome for icons -->
+    <script src="./js/login.js"></script>
+</body>
+</html>

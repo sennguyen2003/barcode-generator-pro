@@ -1,0 +1,8 @@
+key:JWT_SECRET
+Value( chuỗi bí mật của vercel):chuchanhhuyensenmanh
+
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_UJGAOKbkfZZxZrWl_fG0pVyrI7njH2oFQJIwpqoAbVTMRY0"
+
+import { put } from "@vercel/blob";
+
+const { url } = await put('articles/blob.txt', 'Hello World!', { access: 'public' });

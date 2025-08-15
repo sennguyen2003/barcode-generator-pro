@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Generator Suite</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bwip-js@3.2.1/dist/bwip-js-min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header class="main-header">
+            <h1><i class="fa-solid fa-barcode"></i> Barcode Generator Suite</h1>
+            <nav class="app-switcher">
+                <button id="switch-to-417" class="active"><i class="fa-solid fa-id-card"></i> AAMVA PDF417</button>
+                <button id="switch-to-128"><i class="fa-solid fa-tag"></i> Code 128</button>
+            </nav>
+        </header>
+
+        <!-- ================================================================= -->
+        <!-- =================== APP 417 (PDF417) CONTAINER ================== -->
+        <!-- ================================================================= -->
+        <div id="app-417-container">
+             <div class="grid-2-col">
+                <div id="a417-input-panel">
+                    <div id="a417-controls" class="controls-bar"></div>
+                    <div id="a417-accordion-container"></div>
+                </div>
+                <div id="a417-output-panel">
+                    <div class="card">
+                        <h3><i class="fa-solid fa-list-ul"></i> Records List</h3>
+                        <div class="table-container" style="max-height: 200px;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>Filename</th><th>Name</th></tr>
+                                </thead>
+                                <tbody id="a417-records-table-body"></tbody>
+                            </table>
+                        </div>
+                        <button id="a417-export-all-btn" class="button-full-width"><i class="fa-solid fa-download"></i> Export All Images</button>
+                    </div>
+                    <div class="card">
+                        <div class="output-tabs">
+                            <button class="tab-link active" data-tab="a417-preview-tab"><i class="fa-solid fa-eye"></i> Preview</button>
+                            <button class="tab-link" data-tab="a417-data-tab"><i class="fa-solid fa-file-code"></i> Data</button>
+                            <button class="tab-link" data-tab="a417-settings-tab"><i class="fa-solid fa-gears"></i> Settings</button>
+                        </div>
+                        <div id="a417-preview-tab" class="tab-content active">
+                            <div id="a417-barcode-preview"><p>Select a record or generate data to see preview.</p></div>
+                        </div>
+                        <div id="a417-data-tab" class="tab-content">
+                            <label class="textarea-label">Formatted Data</label>
+                            <textarea id="a417-formatted-data" class="code-display" readonly></textarea>
+                            <label class="textarea-label">Raw AAMVA Data String</label>
+                            <textarea id="a417-raw-data" class="code-display" readonly></textarea>
+                        </div>
+                        <div id="a417-settings-tab" class="tab-content">
+                            <h4><i class="fa-solid fa-file-export"></i> Bulk Export Settings</h4>
+                            
+                            <!-- Option 1: Cùng chiều rộng, chiều cao tự do -->
+							<div class="export-option">
+								<label style="font-weight: bold; display: flex; align-items: center; gap: 8px;">
+									<input type="radio" name="export-method" id="a417-export-normalize" value="normalize">
+									Normalize Width (Recommended)
+								</label>
+								<p class="info-text"><b>An toàn.</b> Ảnh có cùng chiều rộng, chiều cao tự do. Mã vạch không bị méo.</p>
+								<label style="margin-top: 10px;">Target Width (px): <input type="number" id="a417-normalize-width-input" value="1200"></label>
+							</div>
+
+							<hr>
+
+							<!-- Option 2: Cùng kích thước cố định (giữ tỷ lệ) -->
+							<div class="export-option">
+								<label style="font-weight: bold; display: flex; align-items: center; gap: 8px;">
+									<!-- Thuộc tính 'checked' đã được chuyển đến đây -->
+									<input type="radio" name="export-method" id="a417-export-fixed" value="fixed" checked>
+									Fixed Canvas (Scale to Fit)
+								</label>
+								<p class="info-text"><b>An toàn.</b> Ảnh có cùng Width & Height. Mã vạch được phóng to tối đa bên trong nhưng **giữ nguyên tỷ lệ** (không bị méo), phần thừa là nền trắng.</p>
+								<div class="grid-2-col" style="margin-top: 10px;">
+									<div><label>Width (px): <input type="number" id="a417-fixed-width-input" value="1200"></label></div>
+									<div><label>Height (px): <input type="number" id="a417-fixed-height-input" value="400"></label></div>
+								</div>
+							</div>
+
+							<hr>
+
+							<!-- Option 3: Cùng kích thước cố định (kéo dãn) -->
+							<div class="export-option" style="border-color: var(--error-color);">
+								<label style="font-weight: bold; display: flex; align-items: center; gap: 8px; color: var(--error-color);">
+									<!-- Đã xóa 'checked' khỏi đây -->
+									<input type="radio" name="export-method" id="a417-export-stretch" value="stretch">
+									Stretch to Fit (Force Size)
+								</label>
+								<p class="info-text" style="color: #c0392b;">Ảnh có cùng Width & Height. Mã vạch sẽ bị **kéo dãn (méo mó)** để lấp đầy toàn bộ khung. <b>CẢNH BÁO:</b> Có thể không quét được bằng các thiết bị thông thường.</p>
+								<div class="grid-2-col" style="margin-top: 10px;">
+									<div><label>Force Width (px): <input type="number" id="a417-stretch-width-input" value="1200"></label></div>
+									<div><label>Force Height (px): <input type="number" id="a417-stretch-height-input" value="300"></label></div>
+								</div>
+							</div>
+
+
+                            <hr>
+                             <h4>Preview Settings</h4>
+                             <div class="grid-2-col">
+                                <div><label>Scale: <input type="number" id="a417-scale-input" value="4"></label></div>
+                                <div><label>Padding: <input type="number" id="a417-padding-input" value="10"></label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- =================== APP 128 (Code128) CONTAINER ================= -->
+        <!-- ================================================================= -->
+        <div id="app-128-container" class="hidden">
+            <div class="card">
+                <h3><i class="fa-solid fa-cogs"></i> Code 128 Controls</h3>
+                <div class="controls-bar" style="align-items: flex-end;">
+                    <div style="flex-grow: 1;">
+                        <label for="a128-filename-input">Filename (uses ICN if empty)</label>
+                        <input type="text" id="a128-filename-input" placeholder="e.g., JohnDoe_Barcode">
+                    </div>
+                    <div style="flex-grow: 2;">
+                        <label for="a128-icn-input">ICN (Code 128 Data)</label>
+                        <input type="text" id="a128-icn-input" placeholder="Enter data or get from PDF417 tab">
+                    </div>
+                    <button id="a128-get-icn-btn" title="Get data from PDF417 Tab"><i class="fa-solid fa-link"></i> Get ICN</button>
+                    <button id="a128-generate-btn" class="button-primary"><i class="fa-solid fa-plus"></i> Add to List</button>
+                    <label for="a128-file-input" class="file-input-label" title="Import a list from Excel"><i class="fa-solid fa-file-import"></i> Import</label>
+                    <input type="file" id="a128-file-input" accept=".xlsx, .xls">
+                </div>
+            </div>
+
+            <div class="grid-2-col">
+                <div class="card">
+                    <h3><i class="fa-solid fa-list-ul"></i> Barcode List</h3>
+                     <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Filename</th><th>Code128 Data</th></tr>
+                            </thead>
+                            <tbody id="a128-records-table-body"></tbody>
+                        </table>
+                    </div>
+                    <button id="a128-save-all-btn" class="button-full-width" disabled><i class="fa-solid fa-download"></i> Save All Barcodes</button>
+                </div>
+                <div class="card">
+                     <h3><i class="fa-solid fa-eye"></i> Barcode Preview</h3>
+                     <div id="a128-barcode-preview">
+                         <p>Select an item to preview</p>
+                     </div>
+                     <div class="options-bar" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <label><input type="checkbox" id="a128-show-text-check" checked> Show text</label>
+                        <label><input type="checkbox" id="a128-transparent-bg-check"> Transparent BG</label>
+                        <label>Height(px): <input type="number" id="a128-height-input" value="120" style="width: 80px;"></label>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/pdf417-generator.js"></script>
+    <script src="js/code128-generator.js"></script>
+    <script src="js/app.js"></script>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+    <script src="./js/lib/xlsx.full.min.js"></script>
+    <script src="./js/lib/bwip-js.min.js"></script>
+    <script src="./js/app.js"></script>
+    <script src="./js/pdf417-ui.js"></script> <!-- Sửa tên từ generator thành ui -->
+    <script src="./js/code128-generator.js"></script>
+
+</body>
+</html>

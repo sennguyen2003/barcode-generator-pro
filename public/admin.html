@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý người dùng</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+    <style>
+        .admin-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 25px;
+            align-items: flex-start;
+        }
+
+        .form-container, .table-container-wrapper {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header chung -->
+        <div class="main-header">
+            <h1><i class="fa-solid fa-user-shield"></i> Trang Quản Trị</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                <span><a href="/index.html" style="text-decoration: none; font-weight: 500;"><i class="fa-solid fa-arrow-left"></i> Quay lại trang chính</a></span>
+                <button id="logout-btn" style="background: var(--error-color);">Đăng xuất</button>
+            </div>
+        </div>
+
+        <div class="admin-container">
+            <!-- Cột Form -->
+            <div class="form-container card">
+                <h3 id="form-title"><i class="fa-solid fa-user-plus"></i> Thêm người dùng mới</h3>
+                <form id="user-form">
+                    <input type="hidden" id="user-id">
+                    <div class="form-group">
+                        <label for="username">Tên đăng nhập</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Mật khẩu</label>
+                        <input type="password" id="password">
+                        <span class="info-text">Để trống nếu không muốn thay đổi mật khẩu.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Vai trò</label>
+                        <select id="role">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="button-primary"><i class="fa-solid fa-save"></i> Lưu</button>
+                        <button type="button" id="cancel-btn">Hủy</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Cột Bảng -->
+            <div class="table-container-wrapper card">
+                <h3><i class="fa-solid fa-users"></i> Danh sách người dùng</h3>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên đăng nhập</th>
+                                <th>Vai trò</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-list-body">
+                            <!-- Dữ liệu sẽ được chèn vào đây bởi JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="./js/admin.js"></script>
+</body>
+</html>

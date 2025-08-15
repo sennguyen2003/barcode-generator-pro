@@ -1,0 +1,322 @@
+/* === css/style.css === */
+
+/* --- Variables & Base Styles --- */
+:root {
+    --primary-color: #4A90E2;
+    --primary-dark: #357ABD;
+    --secondary-color: #50E3C2;
+    --background-color: #f4f7f9;
+    --surface-color: #ffffff;
+    --text-color: #4a4a4a;
+    --text-light: #7f8c8d;
+    --border-color: #e1e8ed;
+    --header-bg: #f8f9fa;
+    --selected-row: #e7f3ff;
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --border-radius: 8px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-size: 15px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+}
+
+/* --- Header & App Switcher --- */
+.main-header {
+    background: var(--surface-color);
+    padding: 15px 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 25px;
+}
+
+.main-header h1 {
+    margin: 0 0 15px 0;
+    font-size: 1.8rem;
+    color: var(--primary-dark);
+}
+.main-header h1 .fa-barcode {
+    margin-right: 10px;
+}
+
+.app-switcher {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin: 0;
+}
+.app-switcher button {
+    padding: 12px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-light);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s ease-in-out;
+}
+.app-switcher button .fa-solid {
+    margin-right: 8px;
+}
+.app-switcher button:hover {
+    color: var(--primary-color);
+}
+.app-switcher button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* --- General UI Elements --- */
+.hidden { display: none !important; }
+
+h2, h3, h4 { 
+    color: var(--text-color); 
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+h3 .fa-solid, h2 .fa-solid { margin-right: 8px; }
+
+.card {
+    background: var(--surface-color);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+}
+
+button, .file-input-label {
+    background-image: linear-gradient(to bottom, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+button:hover { 
+    background-image: linear-gradient(to bottom, #5aa1e8, #4088c4);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+button:disabled { 
+    background-image: none;
+    background-color: #bdc3c7; 
+    cursor: not-allowed; 
+    box-shadow: none;
+    transform: none;
+}
+.button-full-width {
+    width: 100%;
+    justify-content: center;
+    margin-top: 15px;
+}
+.button-primary {
+    background-image: linear-gradient(to bottom, var(--success-color), #27ae60);
+}
+.button-primary:hover {
+    background-image: linear-gradient(to bottom, #58d68d, #2ecc71);
+}
+
+.file-input-label { background-image: linear-gradient(to bottom, #95a5a6, #7f8c8d); }
+.file-input-label:hover { background-image: linear-gradient(to bottom, #aab5b6, #8e9a9b); }
+input[type="file"] { display: none; }
+
+input[type="text"], input[type="number"], select, textarea.code-display {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea.code-display:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    outline: none;
+}
+
+.info-text { color: var(--text-light); font-style: italic; font-size: 0.9em; margin-top: 5px; display: block; }
+hr { border: 0; height: 1px; background-color: var(--border-color); margin: 15px 0;}
+
+/* --- Layouts --- */
+.grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+.grid-3-col { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 12px; align-items: center; }
+
+/* --- Table Styles --- */
+.table-container {
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+.data-table th { background-color: var(--header-bg); position: sticky; top: 0; font-weight: 600; font-size: 14px; }
+.data-table tbody tr { cursor: pointer; transition: background-color 0.15s; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background-color: #f1f5f8; }
+.data-table tbody tr.selected { background-color: var(--selected-row); font-weight: 500; }
+
+/* --- PDF417 Specifics: Accordion & Controls --- */
+#a417-input-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    background-color: var(--surface-color);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+.state-selector-group {
+    display: flex;
+    flex-direction: column;
+}
+.state-selector-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 13px;
+}
+#a417-state-selector-for-random {
+    width: 100px;
+}
+
+.accordion-item {
+    background: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+.accordion-header {
+    width: 100%;
+    background-color: var(--header-bg);
+    padding: 15px 20px;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.accordion-header .fa-solid { margin-right: 10px; }
+.accordion-header:hover { background-color: #e9ecef; }
+.accordion-header::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    transition: transform 0.3s ease;
+}
+.accordion-header.active::after {
+    transform: rotate(180deg);
+}
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 20px;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+}
+.accordion-content.active {
+    padding: 20px;
+}
+.accordion-content .grid-3-col label {
+    font-weight: 500;
+}
+.label-with-calculator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.field-calculator-btn {
+    background-image: none;
+    background-color: #ecf0f1;
+    color: var(--text-light);
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+.field-calculator-btn:hover {
+    background-color: #e0e5e8;
+    color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transform: translateY(0);
+}
+
+/* --- PDF417 Specifics: Output Tabs --- */
+.output-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+}
+.tab-link {
+    background: none;
+    background-image: none;
+    color: var(--text-light);
+    border-radius: 5px 5px 0 0;
+    font-weight: 500;
+    border: 1px solid transparent;
+    border-bottom: none;
+    padding: 10px 15px;
+}
+.tab-link.active {
+    background: var(--surface-color);
+    color: var(--primary-color);
+    border-color: var(--border-color);
+}
+.tab-content { display: none; padding: 20px 0 0 0; }
+.tab-content.active { display: block; }
+.textarea-label { font-weight: 500; margin-top: 15px; margin-bottom: 5px; display: block; font-size: 14px; }
+
+#a417-barcode-preview { text-align: center; padding: 10px; border: 2px dashed var(--border-color); border-radius: var(--border-radius); min-height: 120px; display:flex; align-items:center; justify-content:center; }
+#a417-barcode-preview img { max-width: 100%; height: auto; }
+
+/* --- Code128 Specifics --- */
+.options-bar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.options-bar label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#a128-barcode-preview { text-align: center; display: flex; align-items: center; justify-content: center; min-height: 200px; border: 2px dashed var(--border-color); border-radius: var(--border-radius);}
+#a128-barcode-preview img { max-width: 100%; height: auto; }

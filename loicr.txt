@@ -1,0 +1,820 @@
+// js/pdf417-generator.js (Phiên bản đầy đủ, hỗ trợ Jurisdiction-Specific Subfiles)
+
+/**
+ * Khởi tạo toàn bộ chức năng của trình tạo mã vạch PDF417 AAMVA.
+ * Hàm này thiết lập giao diện người dùng, gắn các trình xử lý sự kiện,
+ * và quản lý toàn bộ luồng dữ liệu của ứng dụng.
+ */
+function initializePdf417Generator() {
+    // --- Lấy các phần tử DOM quan trọng ---
+    const accordionContainer = document.getElementById('a417-accordion-container');
+    const controlsContainer = document.getElementById('a417-controls');
+    const recordsTableBody = document.getElementById('a417-records-table-body');
+    const barcodePreview = document.getElementById('a417-barcode-preview');
+    const formattedDataText = document.getElementById('a417-formatted-data');
+    const rawDataText = document.getElementById('a417-raw-data');
+
+    // --- Biến trạng thái toàn cục của module ---
+    const a417_fields = {};       // Object để lưu trữ tham chiếu đến tất cả các ô input trên form.
+    let a417_all_records = [];    // Mảng lưu trữ tất cả các bản ghi dữ liệu.
+    let a417_barcode_images = {}; // Object lưu trữ các hình ảnh mã vạch đã được tạo ra.
+
+    // --- Dữ liệu hằng số ---
+    const STATE_IIN_MAP = {
+        'AL': '636033', 'AK': '636059', 'AZ': '636021', 'AR': '636021', 'CA': '636014', 'CO': '636020', 'CT': '636021', 'DE': '636011', 'DC': '636043', 'FL': '636014', 'GA': '636055', 'HI': '636047', 'ID': '636051', 'IL': '636035', 'IN': '636037', 'IA': '636018', 'KS': '636022', 'KY': '636046', 'LA': '636007', 'ME': '636041', 'MD': '636003', 'MA': '636002', 'MI': '636003', 'MN': '636038', 'MS': '636051', 'MO': '636030', 'MT': '636008', 'NE': '636021', 'NV': '636021', 'NH': '636039', 'NJ': '636036', 'NM': '636009', 'NY': '636021', 'NC': '636004', 'ND': '636034', 'OH': '636023', 'OK': '636058', 'OR': '636029', 'PA': '636014', 'RI': '636052', 'SC': '636005', 'SD': '636042', 'TN': '636053', 'TX': '636015', 'UT': '636021', 'VT': '636024', 'VA': '636000', 'WA': '636045', 'WV': '636021', 'WI': '636031', 'WY': '636021'
+    };
+
+    // Cấu trúc cho các trường chuẩn, không thay đổi theo bang
+    const standardFieldDefinitions = {
+        "Header Information": { icon: "fa-solid fa-file-invoice", fields: [
+            {label: "Issuer Identification Number (IIN):", name: "iin", value: "636000"},
+            {label: "AAMVA Version Number:", name: "aamva_version", value: "10"},
+            {label: "Jurisdiction Version Number:", name: "jurisdiction_version", value: "00"},
+            {label: "Number of Subfiles:", name: "subfile_count", value: "", placeholder: "Auto-calculated"},
+            {label: "DL Subfile Length:", name: "dl_subfile_length", value: "", placeholder: "Auto-calculated"},
+            {label: "Jurisdiction Subfile Length:", name: "jurisdiction_subfile_length", value: "0000", placeholder: "Auto-calculated"}
+        ]},
+        "Identification Information": { icon: "fa-solid fa-user", fields: [
+            {label: "Family Name (DCS):", name: "family_name", calculable: true}, 
+            {label: "First Name (DAC):", name: "first_name", calculable: true},
+            {label: "Middle Name(s) (DAD):", name: "middle_name",value:"NONE"}, 
+            {label: "Name Suffix (DCU):", name: "name_suffix"},
+            {label: "Date of Birth (DBB):", name: "dob", placeholder: "MMDDYYYY", calculable: true},
+            {label: "Document Expiration Date (DBA):", name: "expiry_date", placeholder: "MMDDYYYY", calculable: true},
+            {label: "Document Issue Date (DBD):", name: "issue_date", placeholder: "MMDDYYYY", calculable: true},
+            {label: "Customer ID Number (DAQ):", name: "customer_id", calculable: true}, 
+            {label: "Document Discriminator (DCF):", name: "document_discriminator", calculable: true},
+            {label: "Country Identification (DCG):", name: "country", value: "USA"},
+            {label: "Family Name Truncation (DDE):", name: "family_name_trunc", type: 'combobox', options: ["N", "T", "U"], value: "N"},
+            {label: "First Name Truncation (DDF):", name: "first_name_trunc", type: 'combobox', options: ["N", "T", "U"], value: "N"},
+            {label: "Middle Name Truncation (DDG):", name: "middle_name_trunc", type: 'combobox', options: ["N", "T", "U"], value: "N"}
+        ]},
+        "Address Information": { icon: "fa-solid fa-location-dot", fields: [
+            {label: "Street 1 (DAG):", name: "street1"}, 
+            {label: "Street 2 (DAH):", name: "street2"},
+            {label: "City (DAI):", name: "city"}, 
+            {label: "Jurisdiction Code (DAJ):", name: "state", value: "CA"},
+            {label: "Postal Code (DAK):", name: "postal_code"}
+        ]},
+        "Physical Description": { icon: "fa-solid fa-person", fields: [
+             {label: "Sex (DBC):", name: "sex", type: 'combobox', options: [["1", "1-Male"], ["2", "2-Female"], ["9", "9-Unknown"]]},
+            {label: "Eye Color (DAY):", name: "eye_color", type: 'combobox', options: ["BLK", "BLU", "BRO","BNR", "GRY", "GRN", "HAZ", "MAR", "PNK"],value: "BLK"},
+            {label: "Height (DAU):", name: "height", placeholder: "e.g., 068 in"},
+            {label: "Hair Color (DAZ):", name: "hair_color", type: 'combobox', options: ["BLK", "BRO", "BLN", "RED", "WHI", "GRY", "SDY", "BAL"], value: "BRO"},
+            {label: "Race/Ethnicity (DCL):", name: "race", type: 'combobox', options: [" ","UNK", "IND", "ASN", "BLK", "HIS", "OTH", "UNK", "WHT"]},
+            {label: "Weight - Pounds (DAW):", name: "weight_pounds"}, 
+            {label: "Weight - Kilograms (DAX):", name: "weight_kg"},
+            {label: "Weight Range (DCE):", name: "weight_range", type: 'combobox', options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]}
+        ]},
+        "Document Details": { icon: "fa-solid fa-stamp", fields: [
+            {label: "Jurisdiction Vehicle Class (DCA):", name: "vehicle_class", value: "F", type: 'combobox', options: ["A", "B", "C", "M", "F","O"]},
+            {label: "Jurisdiction Restrictions (DCB):", name: "restrictions",value:"NONE"},
+            {label: "Jurisdiction Endorsements (DCD):", name: "endorsements",value:"NONE"},
+            {label: "Standard Vehicle Classification (DCM):", name: "std_vehicle_class"},
+            {label: "Standard Restriction Code (DCO):", name: "std_restriction"},
+            {label: "Standard Endorsement Code (DCN):", name: "std_endorsement"},
+            {label: "Compliance Type (DDA):", name: "compliance_type", type: 'combobox', options: [" ","F", "N"], value: "F"},
+            {label: "Card Revision Date (DDB):", name: "card_revision_date", placeholder: "MMDDYYYY",value: "09122021"},
+            {label: "Limited Duration Indicator (DDD):", name: "limited_duration", type: 'combobox', options: ["0", "1"]},
+            {label: "HAZMAT Endorsement Expiry (DDC):", name: "hazmat_expiry", placeholder: "MMDDYYYY"},
+            {label: "Under 18 Until (DDH):", name: "under_18", placeholder: "MMDDYYYY"},
+            {label: "Under 19 Until (DDI):", name: "under_19", placeholder: "MMDDYYYY"},
+            {label: "Under 21 Until (DDJ):", name: "under_21", placeholder: "MMDDYYYY"},
+            {label: "Organ Donor Indicator (DDK):", name: "organ_donor", type: 'combobox', options: ["0", "1"],value: "0"},
+            {label: "Veteran Indicator (DDL):", name: "veteran", type: 'combobox', options: ["0", "1"]},
+             {label: "Place of Birth (DCI):", name: "place_of_birth"},
+            {label: "Audit Information (DCJ):", name: "audit_info", calculable: true}, 
+            {label: "Issuing Office (IOE):", name: "issuing_office", calculable: true}, 
+            {label: "Inventory Control (DCK):", name: "inventory_control", calculable: true}
+        ]},
+        "Optional Fields": { icon: "fa-solid fa-plus-square", fields: [
+            {label: "Alias Family Name (DBN):", name: "alias_family"},
+            {label: "Alias Given Name (DBG):", name: "alias_given"},
+            {label: "Alias Suffix Name (DBS):", name: "alias_suffix"}
+        ]}
+    };
+
+    // Cấu trúc mới, chi tiết, định nghĩa các trường và loại subfile 'Z' cho từng bang
+    const jurisdictionSpecificFields = {
+        'DEFAULT': { title: "Jurisdiction-Specific Fields", subfileType: 'ZC', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Jurisdiction Field A (ZCA):", name: "zca_field"}, {label: "Jurisdiction Field B (ZCB):", name: "zcb_field"},
+            {label: "Jurisdiction Field C (ZCC):", name: "zcc_field"}, {label: "Jurisdiction Field D (ZCD):", name: "zcd_field"}
+        ]},
+        'AL': { title: "Alabama-Specific (ZA)", subfileType: 'ZA', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field AA (ZAA):", name: "zaa_field", value: "NONE"}, {label: "Field AB (ZAB):", name: "zab_field"},
+            {label: "Field AC (ZAC):", name: "zac_field"}, {label: "Field AD (ZAD):", name: "zad_field"},
+            {label: "Field AE (ZAE):", name: "zae_field"}, {label: "Field AF (ZAF):", name: "zaf_field"}
+        ]},
+        'AR': { title: "Arkansas-Specific (ZA)", subfileType: 'ZA', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field AA (ZAA):", name: "zaa_field", value: "NONE"}, {label: "Field AB (ZAB):", name: "zab_field", value: "0401"},
+            {label: "Field AC (ZAC):", name: "zac_field"}, {label: "Field AD (ZAD):", name: "zad_field"}
+        ]},
+        'CA': { title: "California-Specific (ZC)", subfileType: 'ZC', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Eye Color (ZCA):", name: "zca_eye_color"}, {label: "Hair Color (ZCB):", name: "zcb_hair_color"},
+            {label: "Field CC (ZCC):", name: "zcc_field", value: "BRN"}, {label: "Field CD (ZCD):", name: "zcd_field", value: "BRN"},
+            {label: "Field CE (ZCE):", name: "zce_field"}, {label: "Field CF (ZCF):", name: "zcf_field"}
+        ]},
+        'CO': { title: "Colorado-Specific (ZC)", subfileType: 'ZC', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field CA (ZCA):", name: "zca_field", value: "C"}
+        ]},
+        'DC': { title: "D.C.-Specific (ZD)", subfileType: 'ZD', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field DA (ZDA):", name: "zda_field", value: "0"}
+        ]},
+        'DE': { title: "Delaware-Specific (ZD)", subfileType: 'ZD', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field DA (ZDA):", name: "zda_field"}, {label: "Field DB (ZDB):", name: "zdb_field"},
+            {label: "Field DC (ZDC):", name: "zdc_field"}
+        ]},
+        'FL': { title: "Florida-Specific (ZC)", subfileType: 'ZC', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Eye Color (ZCA):", name: "zca_eye_color"}, {label: "Hair Color (ZCB):", name: "zcb_hair_color"},
+            {label: "Field CC (ZCC):", name: "zcc_field"}, {label: "Field CD (ZCD):", name: "zcd_field"},
+            {label: "Field CE (ZCE):", name: "zce_field"}, {label: "Field CF (ZCF):", name: "zcf_field"}
+        ]},
+        'IA': { title: "Iowa-Specific (ZI)", subfileType: 'ZI', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field IA (ZIA):", name: "zia_field"}, {label: "Field IB (ZIB):", name: "zib_field"},
+            {label: "Field IC (ZIC):", name: "zic_field", value: "N"}
+        ]},
+        'IL': { title: "Illinois-Specific (ZI)", subfileType: 'ZI', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field IA (ZIA):", name: "zia_field", value: "ORG"}, {label: "Field IB (ZIB):", name: "zib_field"},
+            {label: "Field IC (ZIC):", name: "zic_field"}, {label: "Field ID (ZID):", name: "zid_field"}
+        ]},
+        'IN': { title: "Indiana-Specific (ZI)", subfileType: 'ZI', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field IA (ZIA):", name: "zia_field"}, {label: "Field IB (ZIB):", name: "zib_field"},
+            {label: "Field IC (ZIC):", name: "zic_field", value: "629"}, {label: "Field ID (ZID):", name: "zid_field"},
+            {label: "Field IE (ZIE):", name: "zie_field"}, {label: "Field IF (ZIF):", name: "zif_field", value: "OP"},
+            {label: "Field IG (ZIG):", name: "zig_field"}, {label: "Field IH (ZIH):", name: "zih_field"}
+        ]},
+        'KS': { title: "Kansas-Specific (ZK)", subfileType: 'ZK', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field KA (ZKA):", name: "zka_field"}, {label: "Field KB (ZKB):", name: "zkb_field"}
+        ]},
+        'KY': { title: "Kentucky-Specific (ZK)", subfileType: 'ZK', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field KA (ZKA):", name: "zka_field", value: "DUP"}
+        ]},
+        'LA': { title: "Louisiana-Specific (ZL)", subfileType: 'ZL', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field LA (ZLA):", name: "zla_field", value: "17"}, {label: "Field LB (ZLB):", name: "zlb_field"},
+            {label: "Field LC (ZLC):", name: "zlc_field"}, {label: "Field LD (ZLD):", name: "zld_field"},
+            {label: "Field LE (ZLE):", name: "zle_field"}, {label: "Field LF (ZLF):", name: "zlf_field"},
+            {label: "Field LG (ZLG):", name: "zlg_field"}, {label: "Field LH (ZLH):", name: "zlh_field"},
+            {label: "Field LI (ZLI):", name: "zli_field", value: "033"}
+        ]},
+        'MA': { title: "Massachusetts-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field"}, {label: "Field MB (ZMB):", name: "zmb_field"},
+            {label: "Field MC (ZMC):", name: "zmc_field"}, {label: "Field MD (ZMD):", name: "zmd_field"},
+            {label: "Field ME (ZME):", name: "zme_field"}
+        ]},
+        'MD': { title: "Maryland-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field", value: "01"}
+        ]},
+        'ME': { title: "Maine-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field"}
+        ]},
+        'MI': { title: "Michigan-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field", value: "04"}, {label: "Field MB (ZMB):", name: "zmb_field"},
+            {label: "Field MC (ZMC):", name: "zmc_field"}, {label: "Field MD (ZMD):", name: "zmd_field"},
+            {label: "Field ME (ZME):", name: "zme_field"}
+        ]},
+        'MN': { title: "Minnesota-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field"}, {label: "Field MB (ZMB):", name: "zmb_field"}
+        ]},
+        'MO': { title: "Missouri-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field", value: "N"}, {label: "Field MB (ZMB):", name: "zmb_field"},
+            {label: "Field MC (ZMC):", name: "zmc_field"}, {label: "Field MD (ZMD):", name: "zmd_field"},
+            {label: "Field ME (ZME):", name: "zme_field"}, {label: "Field MF (ZMF):", name: "zmf_field"},
+            {label: "Field MG (ZMG):", name: "zmg_field"}, {label: "Field MH (ZMH):", name: "zmh_field"},
+            {label: "Field MI (ZMI):", name: "zmi_field"}, {label: "Field MJ (ZMJ):", name: "zmj_field"}
+        ]},
+        'MS': { title: "Mississippi-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+             {label: "Field MA (ZMA):", name: "zma_field"}
+        ]},
+        'MT': { title: "Montana-Specific (ZM)", subfileType: 'ZM', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field MA (ZMA):", name: "zma_field", value: "04"}, {label: "Field MB (ZMB):", name: "zmb_field"},
+            {label: "Field MC (ZMC):", name: "zmc_field"}, {label: "Field MD (ZMD):", name: "zmd_field"},
+            {label: "Field ME (ZME):", name: "zme_field"}, {label: "Field MF (ZMF):", name: "zmf_field", value: "NONE"}
+        ]},
+        'NC': { title: "North Carolina-Specific (ZN)", subfileType: 'ZN', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field NA (ZNA):", name: "zna_field"}, {label: "Field NB (ZNB):", name: "znb_field"},
+            {label: "Field NC (ZNC):", name: "znc_field"}
+        ]},
+        'ND': { title: "North Dakota-Specific (ZN)", subfileType: 'ZN', icon: "fa-solid fa-flag-usa", fields: [
+             {label: "Field NA (ZNA):", name: "zna_field"}
+        ]},
+        'NJ': { title: "New Jersey-Specific (ZN)", subfileType: 'ZN', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field NA (ZNA):", name: "zna_field", value: "AAP"}, {label: "Field NB (ZNB):", name: "znb_field", value: "24.00"},
+            {label: "Field NC (ZNC):", name: "znc_field", value: "ENC"}, {label: "Field ND (ZND):", name: "znd_field"},
+            {label: "Field NE (ZNE):", name: "zne_field"}, {label: "Field NF (ZNF):", name: "znf_field", value: "BRN"},
+            {label: "Field NG (ZNG):", name: "zng_field"}
+        ]},
+        'NM': { title: "New Mexico-Specific (ZN)", subfileType: 'ZN', icon: "fa-solid fa-flag-usa", fields: [
+             {label: "Field NA (ZNA):", name: "zna_field", value: "172"}, {label: "Field NB (ZNB):", name: "znb_field"}
+        ]},
+        'OK': { title: "Oklahoma-Specific (ZO)", subfileType: 'ZO', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field OA (ZOA):", name: "zoa_field"}, {label: "Field OB (ZOB):", name: "zob_field"},
+            {label: "Field OC (ZOC):", name: "zoc_field", value: "PO"}, {label: "Field OD (ZOD):", name: "zod_field", value: "$0.00"},
+            {label: "Field OE (ZOE):", name: "zoe_field"}, {label: "Field OF (ZOF):", name: "zof_field"}
+        ]},
+        'OR': { title: "Oregon-Specific (ZO)", subfileType: 'ZO', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field OA (ZOA):", name: "zoa_field", value: "N"}
+        ]},
+        'RI': { title: "Rhode Island-Specific (ZR)", subfileType: 'ZR', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field RA (ZRA):", name: "zra_field", value: "NONE"}, {label: "Field RB (ZRB):", name: "zrb_field"}
+        ]},
+        'SC': { title: "South Carolina-Specific (ZN)", subfileType: 'ZN', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field NA (ZNA):", name: "zna_field", value: "AAP"}, {label: "Field NB (ZNB):", name: "znb_field", value: "24.00"},
+            {label: "Field NC (ZNC):", name: "znc_field", value: "ENC"}, {label: "Field ND (ZND):", name: "znd_field"},
+            {label: "Field NE (ZNE):", name: "zne_field"}, {label: "Field NF (ZNF):", name: "znf_field", value: "BRN"},
+            {label: "Field NG (ZNG):", name: "zng_field"}
+        ]},
+        'SD': { title: "South Dakota-Specific (ZS)", subfileType: 'ZS', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field SA (ZSA):", name: "zsa_field"}, {label: "Field SB (ZSB):", name: "zsb_field"},
+            {label: "Field SC (ZSC):", name: "zsc_field"}
+        ]},
+        'TN': { title: "Tennessee-Specific (ZT)", subfileType: 'ZT', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field TA (ZTA):", name: "zta_field", value: "N"}, {label: "Field TB (ZTB):", name: "ztb_field"},
+            {label: "Field TC (ZTC):", name: "ztc_field"}, {label: "Field TD (ZTD):", name: "ztd_field"},
+            {label: "Field TE (ZTE):", name: "zte_field"}, {label: "Field TF (ZTF):", name: "ztf_field"},
+            {label: "Field TG (ZTG):", name: "ztg_field"}
+        ]},
+        'TX': { title: "Texas-Specific (ZT)", subfileType: 'ZT', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Field TA (ZTA):", name: "zta_field", value: "N"}
+        ]},
+        'VA': { title: "Virginia-Specific (ZV)", subfileType: 'ZV', icon: "fa-solid fa-flag-usa", fields: [
+            {label: "Virginia Data (ZVA):", name: "zva_data", type: 'textarea', placeholder: "Paste raw Virginia-specific data here"}
+        ]}
+    };
+
+    /**
+     * Xây dựng giao diện người dùng (form, control) từ các định nghĩa.
+     */
+    function buildFormAndControls() {
+        // Hàm nội bộ để cập nhật giao diện dựa trên bang được chọn
+        function updateUIBasedOnState() {
+            const selectedState = document.getElementById('a417-state-selector-for-random').value.toUpperCase();
+            if (a417_fields.state) {
+                 a417_fields.state.value = selectedState;
+            }
+            const iin = STATE_IIN_MAP[selectedState] || '636000'; // Dùng IIN mặc định nếu không có
+            if (a417_fields.iin) {
+                a417_fields.iin.value = iin;
+            }
+            updateJurisdictionFieldsUI(selectedState);
+        }
+
+        // Tạo HTML cho các accordion chuẩn
+        let accordionHtml = '';
+        for (const category in standardFieldDefinitions) {
+            const categoryInfo = standardFieldDefinitions[category];
+            accordionHtml += `<div class="accordion-item">
+                <button class="accordion-header"><i class="${categoryInfo.icon}"></i> ${category}</button>
+                <div class="accordion-content">
+                    <div class="grid-3-col">`;
+            
+            categoryInfo.fields.forEach(field => {
+                const elementId = field.label.match(/\((.*?)\)/)?.[1] || '';
+                let labelHtml = `<label for="a417-${field.name}" class="${field.calculable ? 'label-with-calculator' : ''}">
+                                     <span>${field.label}</span>`;
+                if (field.calculable) {
+                    labelHtml += `<button class="field-calculator-btn" data-field-name="${field.name}" title="Generate for this field">
+                                      <i class="fa-solid fa-calculator"></i></button>`;
+                }
+                labelHtml += `</label>`;
+                accordionHtml += labelHtml;
+
+                if (field.type === 'combobox') {
+                    const datalistId = `datalist-${field.name}`;
+                    accordionHtml += `<input list="${datalistId}" id="a417-${field.name}" value="${field.value || ''}" placeholder="${field.placeholder || ''}" autocomplete="off">`;
+                    accordionHtml += `<datalist id="${datalistId}">`;
+                    field.options.forEach(opt => {
+                        if (Array.isArray(opt)) {
+                            accordionHtml += `<option value="${opt[0]}">${opt[1] || ''}</option>`;
+                        } else {
+                            accordionHtml += `<option value="${opt}"></option>`;
+                        }
+                    });
+                    accordionHtml += `</datalist>`;
+                } else { 
+                    accordionHtml += `<input type="text" id="a417-${field.name}" value="${field.value || ''}" placeholder="${field.placeholder || ''}">`;
+                }
+                accordionHtml += `<span>${elementId}</span>`;
+            });
+            accordionHtml += `</div></div></div>`;
+        }
+        // Thêm một container trống để chứa các trường jurisdiction-specific
+        accordionHtml += `<div id="a417-jurisdiction-fields-container"></div>`;
+        accordionContainer.innerHTML = accordionHtml;
+
+        // Lưu trữ tham chiếu đến các phần tử input chuẩn
+        for (const category in standardFieldDefinitions) {
+             standardFieldDefinitions[category].fields.forEach(field => {
+                const element = document.getElementById(`a417-${field.name}`);
+                if(element) a417_fields[field.name] = element;
+             });
+        }
+        
+        // Tạo các nút điều khiển
+        const states = Object.keys(STATE_IIN_MAP).sort();
+        let stateOptions = states.map(s => `<option value="${s}"></option>`).join('');
+        
+        controlsContainer.innerHTML = `
+            <div class="state-selector-group">
+                <label for="a417-state-selector-for-random">State:</label>
+                <input list="a417-states-datalist" id="a417-state-selector-for-random" placeholder="e.g., CA" value="CA">
+                <datalist id="a417-states-datalist">${stateOptions}</datalist>
+            </div>
+            <button id="a417-fill-all-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Fill All Fields</button>
+            <label for="a417-excel-input" class="file-input-label"><i class="fa-solid fa-file-excel"></i> Import Excel</label>
+            <input type="file" id="a417-excel-input" accept=".xlsx, .xls">
+            <button id="a417-generate-current-btn"><i class="fa-solid fa-gears"></i> Generate Barcode</button>
+        `;
+
+        // Gắn các trình xử lý sự kiện
+        document.getElementById('a417-state-selector-for-random').addEventListener('change', updateUIBasedOnState);
+        document.getElementById('a417-fill-all-btn').addEventListener('click', generateAllRandomData);
+        document.getElementById('a417-excel-input').addEventListener('change', importFromExcel);
+        document.getElementById('a417-generate-current-btn').addEventListener('click', generateBarcodeForCurrentData);
+        document.getElementById('a417-export-all-btn').addEventListener('click', exportAllImages);
+        addFieldCalculatorListeners();
+        addTabListeners();
+        
+        // Khởi tạo UI cho bang mặc định (CA)
+        updateUIBasedOnState();
+    }
+    
+    /**
+     * Cập nhật phần giao diện cho các trường jurisdiction-specific dựa trên bang được chọn.
+     * @param {string} stateCode - Mã bang (ví dụ: 'TX', 'CA').
+     */
+    function updateJurisdictionFieldsUI(stateCode) {
+        const container = document.getElementById('a417-jurisdiction-fields-container');
+        const definition = jurisdictionSpecificFields[stateCode] || jurisdictionSpecificFields['DEFAULT'];
+
+        // Xóa các trường jurisdiction-specific cũ khỏi `a417_fields` object để tránh rò rỉ bộ nhớ
+        Object.keys(a417_fields).forEach(key => {
+            if (key.startsWith('z')) {
+                delete a417_fields[key];
+            }
+        });
+
+        // Tạo HTML cho accordion mới
+        let html = `<div class="accordion-item">
+            <button class="accordion-header"><i class="${definition.icon}"></i> ${definition.title}</button>
+            <div class="accordion-content">
+                <div class="${definition.fields.some(f => f.type === 'textarea') ? 'grid-1-col' : 'grid-3-col'}">`;
+
+        definition.fields.forEach(field => {
+            const elementId = field.label.match(/\((.*?)\)/)?.[1] || '';
+            html += `<label for="a417-${field.name}">${field.label}</label>`;
+            if (field.type === 'textarea') {
+                 html += `<textarea id="a417-${field.name}" placeholder="${field.placeholder || ''}" rows="3">${field.value || ''}</textarea>`;
+            } else {
+                 html += `<input type="text" id="a417-${field.name}" value="${field.value || ''}" placeholder="${field.placeholder || ''}">`;
+            }
+            html += `<span>${elementId}</span>`;
+        });
+        html += `</div></div></div>`;
+        container.innerHTML = html;
+        
+        // Thêm các trường mới được tạo vào `a417_fields` object
+        definition.fields.forEach(field => {
+            const element = document.getElementById(`a417-${field.name}`);
+            if (element) a417_fields[field.name] = element;
+        });
+
+        // Gắn lại listener cho tất cả các accordion (bao gồm cả cái mới)
+        addAccordionListeners();
+        
+        // Tự động mở accordion vừa được tạo để người dùng thấy
+        const newHeader = container.querySelector('.accordion-header');
+        if (newHeader && !newHeader.classList.contains('active')) {
+            newHeader.click();
+        }
+    }
+
+    /**
+     * Gắn sự kiện đóng/mở cho các accordion.
+     */
+    function addAccordionListeners() {
+        const headers = document.querySelectorAll('.accordion-header');
+        headers.forEach((header) => {
+            // Loại bỏ listener cũ để tránh gắn nhiều lần
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+
+            newHeader.addEventListener('click', () => {
+                const content = newHeader.nextElementSibling;
+                const isActive = newHeader.classList.contains('active');
+                
+                // Đóng tất cả các accordion khác nếu cần
+                // document.querySelectorAll('.accordion-header.active').forEach(h => {
+                //     if (h !== newHeader) {
+                //         h.classList.remove('active');
+                //         h.nextElementSibling.style.maxHeight = null;
+                //     }
+                // });
+
+                if (isActive) {
+                    newHeader.classList.remove('active');
+                    content.style.maxHeight = null;
+                } else {
+                    newHeader.classList.add('active');
+                    content.style.maxHeight = content.scrollHeight + 40 + "px"; 
+                }
+            });
+        });
+    }
+
+    /**
+     * Gắn sự kiện chuyển tab cho khu vực output.
+     */
+    function addTabListeners() {
+        const tabLinks = document.querySelectorAll('.output-tabs .tab-link');
+        tabLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const tabId = link.getAttribute('data-tab');
+                document.querySelectorAll('.output-tabs .tab-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                link.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    }
+    
+    /**
+     * Gắn sự kiện cho các nút "tính toán" bên cạnh mỗi trường.
+     */
+    function addFieldCalculatorListeners() {
+        accordionContainer.addEventListener('click', (event) => {
+            const button = event.target.closest('.field-calculator-btn');
+            if (!button) return;
+
+            const fieldName = button.dataset.fieldName;
+            const state = document.getElementById('a417-state-selector-for-random').value.toUpperCase();
+
+            const generator = (fieldGenerators.specific[state] && fieldGenerators.specific[state][fieldName]) 
+                              || fieldGenerators.generic[fieldName];
+            
+            if (generator) {
+                generator();
+            } else {
+                console.warn(`No generator found for field '${fieldName}' in state '${state}'`);
+            }
+        });
+    }
+    
+    // =======================================================================
+    // === SECTION: UTILITY & GENERATOR FUNCTIONS (KHÔNG THAY ĐỔI)         ===
+    // =======================================================================
+    // Phần này bao gồm các hàm không cần thay đổi logic, chỉ giữ nguyên
+    // như các hàm get_letter..., random..., các hàm tính toán cho từng bang
+    // đã được định nghĩa từ trước.
+    
+    function get_letter_corresponding_month(month) { /* ... giữ nguyên ... */ }
+    function showInputDataAlert(message) { /* ... giữ nguyên ... */ }
+    function getNumberOfDaysFromBeginnigOfYear(date) { /* ... giữ nguyên ... */ }
+    function randomDate(start, end) { /* ... giữ nguyên ... */ }
+    function getFormattedDate_MMDDYYYY(date) { /* ... giữ nguyên ... */ }
+    function getRandomDateByYear(minYear, maxYear) { /* ... giữ nguyên ... */ }
+    function getRandomDigit() { /* ... giữ nguyên ... */ }
+    function getRandomNumericString(len) { /* ... giữ nguyên ... */ }
+    function getRandomLetter() { /* ... giữ nguyên ... */ }
+    function getRandomLetterAndDigit() { /* ... giữ nguyên ... */ }
+    function getRandomLastName() { /* ... giữ nguyên ... */ }
+    function getRandomFirstName(sex) { /* ... giữ nguyên ... */ }
+    function getRandomInt(min, max) { /* ... giữ nguyên ... */ }
+
+    // ... Toàn bộ các hàm generic_calculate... và <State>_calculate...
+    const fieldGenerators = { /* ... giữ nguyên toàn bộ object này từ phiên bản trước ... */ };
+    
+    /**
+     * Tạo dữ liệu ngẫu nhiên cho tất cả các trường dựa trên bang đã chọn.
+     */
+    function generateAllRandomData() {
+        // Hàm này giữ nguyên logic cũ vì nó chủ yếu tạo dữ liệu cho các trường chuẩn
+        // Các trường Z sẽ giữ giá trị mặc định của chúng khi UI được vẽ lại
+        const stateSelector = document.getElementById('a417-state-selector-for-random');
+        const selectedState = stateSelector.value.toUpperCase().trim();
+        if (!selectedState) {
+            alert("Vui lòng chọn một tiểu bang.");
+            stateSelector.focus();
+            return;
+        }
+        
+        // Cập nhật UI cho bang được chọn trước khi điền dữ liệu
+        if(a417_fields.state) a417_fields.state.value = selectedState;
+        updateJurisdictionFieldsUI(selectedState);
+        if(a417_fields.iin) a417_fields.iin.value = STATE_IIN_MAP[selectedState] || '636000';
+
+        // Điền các dữ liệu ngẫu nhiên
+        if(a417_fields.sex) a417_fields.sex.value = Math.random() > 0.5 ? "1" : "2";
+        fieldGenerators.generic.family_name();
+        fieldGenerators.generic.first_name();
+        fieldGenerators.generic.dob();
+        fieldGenerators.generic.issue_date();
+        
+        const stateSpecificExpiryGenerator = fieldGenerators.specific[selectedState]?.expiry_date;
+        if (stateSpecificExpiryGenerator) {
+            stateSpecificExpiryGenerator();
+        } else {
+            fieldGenerators.generic.expiry_date();
+        }
+        
+        const cityData = { /* ... giữ nguyên object cityData ... */ };
+        const currentCityData = cityData[selectedState] || { cities: ["Anytown"], zips: [12345]};
+        const randomIndex = Math.floor(Math.random() * currentCityData.cities.length);
+        
+        if(a417_fields.street1) a417_fields.street1.value = `${getRandomInt(100, 9999)} ${["Main St", "Oak Ave", "Pine Rd"][Math.floor(Math.random()*3)]}`;
+        if(a417_fields.city) a417_fields.city.value = currentCityData.cities[randomIndex];
+        if(a417_fields.postal_code) a417_fields.postal_code.value = String(currentCityData.zips[randomIndex] + getRandomInt(0, 50)).padStart(5,'0');
+        if(a417_fields.street2) a417_fields.street2.value = ''; 
+        if(a417_fields.height) a417_fields.height.value = `0${getRandomInt(60, 75)}`;
+        if(a417_fields.weight_pounds) a417_fields.weight_pounds.value = getRandomInt(120, 220).toString();
+        
+        const generationOrder = ['dob', 'family_name', 'first_name', 'customer_id', 'issue_date', 'expiry_date', 'inventory_control', 'document_discriminator', 'audit_info', 'issuing_office'];
+        generationOrder.forEach(fieldName => {
+            if (a417_fields[fieldName]) {
+                const generator = (fieldGenerators.specific[selectedState]?.[fieldName]) || fieldGenerators.generic[fieldName];
+                if (generator) {
+                    try { generator(); } catch (e) { console.warn(`Generator for ${fieldName} failed:`, e); }
+                }
+            }
+        });
+
+        alert(`Đã tạo dữ liệu ngẫu nhiên cho tiểu bang: ${selectedState}`);
+    }
+
+    /**
+     * Lấy dữ liệu hiện tại từ các ô input trên form.
+     */
+    function getCurrentData() {
+        const data = {};
+        for(const name in a417_fields) { 
+            if (a417_fields[name]) {
+                data[name] = a417_fields[name].value; 
+            }
+        }
+        return data;
+    }
+
+    /**
+     * Xử lý việc nhập dữ liệu từ file Excel, đã được cập nhật để nhận dạng các trường Z.
+     */
+    function importFromExcel(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                if (jsonData.length === 0) { alert("No data found in Excel file."); return; }
+                a417_all_records = [];
+                a417_barcode_images = {};
+                
+                // Xây dựng map ánh xạ Excel động
+                const excelMapping = {
+                    'Family Name': 'family_name', 'First Name': 'first_name', 'Middle Name(s)': 'middle_name',
+                    'Name Suffix': 'name_suffix', 'Date of Birth': 'dob', 'Expiration Date': 'expiry_date', 
+                    'Issue Date': 'issue_date', 'ID Number': 'customer_id', 'Document Discriminator': 'document_discriminator',
+                    'Country': 'country', 'Family Name Truncation': 'family_name_trunc', 'First Name Truncation': 'first_name_trunc',
+                    'Middle Name Truncation': 'middle_name_trunc', 'Street 1': 'street1', 'Street 2': 'street2', 'City': 'city', 
+                    'State': 'state', 'Postal Code': 'postal_code', 'Sex': 'sex', 'Eye Color': 'eye_color', 'Height': 'height', 
+                    'Hair Color': 'hair_color', 'Race/Ethnicity': 'race', 'Weight (lbs)': 'weight_pounds', 'Weight (kg)': 'weight_kg', 
+                    'Weight Range': 'weight_range', 'Vehicle Class': 'vehicle_class', 'Restrictions': 'restrictions', 'Endorsements': 'endorsements',
+                    'Card Revision Date': 'card_revision_date', 'Organ Donor': 'organ_donor', 'Veteran': 'veteran', 'Compliance Type': 'compliance_type', 
+                    'Limited Duration': 'limited_duration', 'HAZMAT Expiry': 'hazmat_expiry', 'Under 18 Until': 'under_18', 'Under 19 Until': 'under_19', 
+                    'Under 21 Until': 'under_21', 'Standard Vehicle Classification': 'std_vehicle_class', 'Standard Restriction': 'std_restriction', 
+                    'Standard Endorsement': 'std_endorsement', 'Inventory control': 'inventory_control', 'Audit Information': 'audit_info', 
+                    'Place of Birth': 'place_of_birth', 'Issuing Office': 'issuing_office', 
+                    'Alias Family Name': 'alias_family', 'Alias Given Name': 'alias_given', 'Alias Suffix Name': 'alias_suffix', 
+                    'IIN': 'iin', 'AAMVA Version': 'aamva_version', 'Jurisdiction Version': 'jurisdiction_version', 'Filename': 'filename'
+                };
+                
+                // Tự động thêm các trường Z vào map
+                for (const state in jurisdictionSpecificFields) {
+                    jurisdictionSpecificFields[state].fields.forEach(field => {
+                        excelMapping[field.label] = field.name;
+                    });
+                }
+                
+                jsonData.forEach(row => {
+                    let recordData = {}; // Bắt đầu với record rỗng
+                     for (const excelHeader in excelMapping) {
+                        const fieldName = excelMapping[excelHeader];
+                        let value = row[excelHeader] !== undefined ? String(row[excelHeader]).trim() : undefined;
+                        
+                        if (value !== undefined) {
+                            if (['Date of Birth', 'Expiration Date', 'Issue Date', 'Card Revision Date', 'HAZMAT Expiry', 'Under 18 Until', 'Under 19 Until', 'Under 21 Until'].includes(excelHeader)) {
+                                if (value && !/^\d{8}$/.test(value)) { 
+                                    const dt = new Date(Math.round((value - 25569) * 86400 * 1000));
+                                    if (!isNaN(dt.getTime())) { value = getFormattedDate_MMDDYYYY(dt); }
+                                }
+                            } else if(fieldName === 'sex') {
+                                const val_lower = value.toLowerCase();
+                                if (['male', 'm', '1', 'nam'].includes(val_lower)) value = "1";
+                                else if (['female', 'f', '2', 'nữ'].includes(val_lower)) value = "2";
+                                else value = "9";
+                            }
+                            recordData[fieldName] = value;
+                        }
+                    }
+                    a417_all_records.push(recordData);
+                });
+                generateAndDisplayAllBarcodes();
+                alert(`Successfully imported and generated ${a417_all_records.length} barcodes!`);
+            } catch (err) {
+                console.error(err);
+                alert("Error processing Excel file: " + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    // =======================================================================
+    // === SECTION: CORE APPLICATION LOGIC                                 ===
+    // =======================================================================
+
+    /**
+     * [CORE LOGIC - REWRITTEN]
+     * Tạo chuỗi dữ liệu thô tuân thủ tiêu chuẩn AAMVA một cách linh hoạt.
+     * @param {object} record_data - Dữ liệu từ form hoặc file Excel.
+     * @returns {object} - Chứa chuỗi dữ liệu cuối cùng và các thông tin header.
+     */
+    function generateAamvaDataString(record_data) {
+        const LF = '\n';
+        const CR = '\r';
+        const RS = String.fromCharCode(30);
+        
+        // Bước 1: Xây dựng một map ánh xạ từ `fieldName` sang {id, subfileType}
+        const fieldMap = {};
+        // Thêm các trường chuẩn vào subfile 'DL'
+        for (const category in standardFieldDefinitions) {
+            standardFieldDefinitions[category].fields.forEach(field => {
+                const id = field.label.match(/\((.*?)\)/)?.[1];
+                if (id) fieldMap[field.name] = { id: id, subfileType: 'DL' };
+            });
+        }
+        
+        // Thêm các trường jurisdiction-specific
+        const state = record_data.state || 'CA';
+        const jurisDefinition = jurisdictionSpecificFields[state] || jurisdictionSpecificFields['DEFAULT'];
+        const jurisSubfileType = jurisDefinition.subfileType;
+        
+        jurisDefinition.fields.forEach(field => {
+            const id = field.label.match(/\((.*?)\)/)?.[1];
+            if (id) fieldMap[field.name] = { id: id, subfileType: jurisSubfileType };
+        });
+
+        // Bước 2: Thu thập dữ liệu vào các subfile tương ứng
+        const subfileContents = {}; 
+        for (const fieldName in record_data) {
+            const value = String(record_data[fieldName] || '').trim();
+            const mapping = fieldMap[fieldName];
+            
+            if (value && mapping) {
+                if (!subfileContents[mapping.subfileType]) {
+                    subfileContents[mapping.subfileType] = [];
+                }
+                // Trường hợp đặc biệt cho Virginia ZV, lấy giá trị thô
+                if (mapping.id === 'ZVA') {
+                    subfileContents[mapping.subfileType].push(mapping.id + value);
+                } else {
+                    subfileContents[mapping.subfileType].push(mapping.id + value);
+                }
+            }
+        }
+        
+        // Bước 3: Xây dựng các khối dữ liệu subfile hoàn chỉnh
+        let activeSubfiles = [];
+        let dlLength = 0, jurisLength = 0;
+
+        const subfileOrder = ['DL', ...Object.keys(subfileContents).filter(k => k !== 'DL').sort()];
+
+        for (const type of subfileOrder) {
+            if (subfileContents[type] && subfileContents[type].length > 0) {
+                const subfileBody = subfileContents[type].join(LF);
+                const subfileDataBlock = type + subfileBody;
+                
+                activeSubfiles.push({
+                    type: type,
+                    dataBlock: subfileDataBlock,
+                    length: subfileDataBlock.length
+                });
+
+                if (type === 'DL') dlLength = subfileDataBlock.length;
+                if (type.startsWith('Z')) jurisLength = subfileDataBlock.length;
+            }
+        }
+        
+        const subfileCount = activeSubfiles.length;
+        if (subfileCount === 0) {
+            return { finalString: "@\n\u001e\rANSI \r", subfileCount: "00", dlLength: "0000", zcLength: "0000" };
+        }
+
+        // Bước 4: Tạo Header và Directory
+        const preamble = `@${LF}${RS}${CR}`;
+        const fileHeader = `ANSI ${String(record_data.iin || '636000').padEnd(6, ' ')}` +
+                         `${String(record_data.aamva_version || '10').padStart(2, '0')}` +
+                         `${String(record_data.jurisdiction_version || '00').padStart(2, '0')}` +
+                         `${String(subfileCount).padStart(2, '0')}`;
+        
+        let directory = "";
+        let fullBody = "";
+        let currentOffset = preamble.length + fileHeader.length + (subfileCount * 10);
+
+        activeSubfiles.forEach(sf => {
+            directory += `${sf.type}${String(currentOffset).padStart(4, '0')}${String(sf.length).padStart(4, '0')}`;
+            fullBody += sf.dataBlock;
+            currentOffset += sf.length;
+        });
+
+        const finalString = preamble + fileHeader + directory + fullBody + CR;
+
+        return {
+            finalString: finalString,
+            subfileCount: String(subfileCount).padStart(2, '0'),
+            dlLength: String(dlLength).padStart(4, '0'),
+            zcLength: String(jurisLength).padStart(4, '0') 
+        };
+    }
+    
+    /**
+     * Tạo hình ảnh mã vạch từ chuỗi dữ liệu.
+     */
+    function generateBarcode(dataString, scale, padding) { /* ... giữ nguyên ... */ }
+    
+    /**
+     * Tạo và hiển thị tất cả mã vạch cho các bản ghi đã được import/tạo.
+     */
+    function generateAndDisplayAllBarcodes() { /* ... giữ nguyên ... */ }
+    
+    /**
+     * Điền dữ liệu vào bảng danh sách các bản ghi.
+     */
+    function populateRecordsTable() { /* ... giữ nguyên ... */ }
+    
+    /**
+     * Xử lý sự kiện khi một bản ghi trong bảng được chọn.
+     * Cập nhật UI động cho bang của bản ghi được chọn.
+     */
+    function onRecordSelect(index) {
+        if (index < 0 || index >= a417_all_records.length) return;
+
+        // Highlight hàng được chọn
+        Array.from(recordsTableBody.children).forEach(row => row.classList.remove('selected'));
+        const rowToSelect = recordsTableBody.querySelector(`[data-index='${index}']`);
+        if (rowToSelect) rowToSelect.classList.add('selected');
+
+        const recordData = a417_all_records[index];
+        const canvas = a417_barcode_images[index];
+        
+        // Cập nhật UI cho bang của bản ghi này trước khi điền dữ liệu
+        const stateOfRecord = recordData.state || 'CA';
+        document.getElementById('a417-state-selector-for-random').value = stateOfRecord;
+        updateJurisdictionFieldsUI(stateOfRecord);
+        
+        // Bây giờ điền tất cả dữ liệu vào các trường input đã được vẽ lại
+        for(const name in a417_fields) {
+            if(a417_fields[name] && recordData[name] !== undefined) {
+                 a417_fields[name].value = recordData[name];
+            }
+        }
+        
+        // Hiển thị preview và dữ liệu
+        if (canvas) {
+            barcodePreview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL();
+            barcodePreview.appendChild(img);
+        } else {
+            barcodePreview.innerHTML = '<p>Error generating barcode for this record.</p>';
+        }
+
+        const generationResult = generateAamvaDataString(recordData);
+        if (a417_fields.subfile_count) a417_fields.subfile_count.value = generationResult.subfileCount;
+        if (a417_fields.dl_subfile_length) a417_fields.dl_subfile_length.value = generationResult.dlLength;
+        if (a417_fields.jurisdiction_subfile_length) a417_fields.jurisdiction_subfile_length.value = generationResult.zcLength;
+        
+        displayFormattedData(recordData);
+        const readableString = generationResult.finalString.replace(/\u001e/g, ' <RS> ').replace(/\r/g, ' <CR>').replace(/\n/g, '<LF>\n');
+        rawDataText.value = "RAW AAMVA DATA STRING:\n====================\n" + readableString;
+    }
+
+    /**
+     * Hiển thị dữ liệu đã được định dạng một cách dễ đọc.
+     */
+   function displayFormattedData(data) { /* ... giữ nguyên ... */ }
+
+    /**
+     * Tạo mã vạch cho dữ liệu hiện tại trên form.
+     */
+    function generateBarcodeForCurrentData() { /* ... giữ nguyên ... */ }
+    
+    /**
+     * Xuất tất cả các mã vạch đã tạo ra thành file ảnh.
+     */
+    async function exportAllImages() { /* ... giữ nguyên ... */ }
+
+    // --- Khởi chạy ứng dụng ---
+    buildFormAndControls();
+}

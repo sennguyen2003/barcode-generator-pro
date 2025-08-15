@@ -1,0 +1,45 @@
+AK:"7 digits + whitespace + 3 digits + issue date (YYMMDD) + 3 letters + -1 or -0. You can click on the calculator icon to calculate DD automatically!",AL:Document number + 5
+random digits + 2 digits of
+issue year + 3 digits is
+number of days from the
+beginning of the year to
+document + 01. You can click
+on the calculator icon to
+calculate ICN automatically!,AZ:You can click on the
+calculator icon to calculate
+DD automatically!,Arkansas:9 digtis + + 4 digits. You
+can click on the calculator
+icon to calculate DD
+automatically!,Colorado:CODL_0_+ Date of issue+
+day in MMDDYY format + '_
++ 5 random digits. You can
+click on the calculator icon to
+calculate data automatically!,Indiana:Issue date in MMDDYY
+format + DL issuing office
+code (Located under the
+photo) + 00 + 3 digits. You
+can click on the calculator
+icon to calculate DD
+automatically!,Ohio:9 random digits.
+You can click on the
+calculator icon to calculate
+DD automatically!,Oklahoma::Documunet number + Date
+of birth (MMDDYY) + issue
+date (MMDDYY) + letter. You
+can click on the calculator
+icon to calculate DD
+automatically!, Tennessee:2 digits + '0' + issue date (YYMMDD) + 7 random digits. You can click on the calculator icon to calculate DD automatically!,Virginia:'0' + 8 digits. You can click on
+the calculator icon to
+calculate DD automatically!,Washington:Document number + audit
+information
+You can click on the
+calculator icon to calculate
+DD automatically!,West Virginia:Date of birth (MMDDYY) +
+First letter of last name + first
+letter of first name + expiry
+data (YYDD). You can click on
+the calculator icon to
+calculate DD automatically!,Wyoming:10000 + 5 digits. Same as
+ICN. You can click on the
+calculator icon to calculate
+DD automatically!
