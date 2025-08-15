@@ -1,15 +1,15 @@
-// backend/database.js - PHIÊN BẢN SỬA LỖI ĐƯỜNG DẪN CUỐI CÙNG
+// backend/database.js - PHIÊN BẢN HOÀN THIỆN
 
 const { head, put } = require('@vercel/blob');
 const initSqlJs = require('sql.js');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 
 const DB_FILENAME = 'database.db';
-let dbPromise = null; // Thay vì biến db, chúng ta dùng promise để xử lý khởi tạo một lần
+let dbPromise = null; // Dùng promise để đảm bảo CSDL chỉ khởi tạo một lần
 
+// Hàm lưu CSDL lên Blob. Nó cần db instance để hoạt động.
 async function saveDatabase(dbInstance) {
     if (!dbInstance) return;
     try {
@@ -27,12 +27,10 @@ function initializeDatabase() {
 
     dbPromise = (async () => {
         try {
-            // === ĐÂY LÀ PHẦN SỬA LỖI QUAN TRỌNG NHẤT ===
-            // Tự động tìm đường dẫn đến file wasm, thay vì đoán mò
+            // Tự động tìm đường dẫn đến file wasm một cách chính xác
             const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
             const wasmBinary = fs.readFileSync(sqlJsWasmPath);
             const SQL = await initSqlJs({ wasmBinary });
-            // === KẾT THÚC PHẦN SỬA LỖI ===
 
             let db;
             // Thử tải CSDL từ Vercel Blob
@@ -41,8 +39,7 @@ function initializeDatabase() {
                 const response = await fetch(blobInfo.url);
                 if (response.ok) {
                     const arrayBuffer = await response.arrayBuffer();
-                    const dbFileBuffer = new Uint8Array(arrayBuffer);
-                    db = new SQL.Database(dbFileBuffer);
+                    db = new SQL.Database(new Uint8Array(arrayBuffer));
                     console.log('Đã tải CSDL từ Vercel Blob.');
                 }
             } catch (error) {
@@ -54,7 +51,6 @@ function initializeDatabase() {
                 console.log('Không tìm thấy CSDL trên Blob, đã tạo mới.');
             }
 
-            // Tạo bảng và admin user nếu là CSDL mới
             db.exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, role TEXT)`);
 
             const adminCheck = db.exec("SELECT * FROM users WHERE username = 'admin'");
@@ -63,11 +59,16 @@ function initializeDatabase() {
                 const adminPasswordHash = bcrypt.hashSync('admin123', salt);
                 db.run("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ['admin', adminPasswordHash, 'admin']);
                 console.log('Tài khoản admin mặc định đã được tạo.');
-                await saveDatabase(db);
+                await saveDatabase(db); // Lưu ngay sau khi tạo admin
             }
 
             console.log('Khởi tạo CSDL thành công.');
-            return db; // Trả về instance của db
+            
+            // Trả về một object chứa cả db instance và hàm save đã được gắn sẵn
+            return {
+                db,
+                save: () => saveDatabase(db)
+            };
 
         } catch (error) {
             console.error('Lỗi nghiêm trọng khi khởi tạo CSDL:', error);
@@ -78,9 +79,4 @@ function initializeDatabase() {
     return dbPromise;
 }
 
-// Sửa đổi các hàm route để chúng lấy db từ promise
-async function getDb() {
-    return await initializeDatabase();
-}
-
-module.exports = { getDb, saveDatabase };
+module.exports = { initializeDatabase };
