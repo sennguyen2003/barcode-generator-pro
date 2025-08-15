@@ -51,15 +51,18 @@ function initializeDatabase() {
                 console.log('Không tìm thấy CSDL trên Blob, đã tạo mới.');
             }
 
-            db.exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, role TEXT)`);
+             const adminCheck = db.exec("SELECT * FROM users WHERE username = 'sennguyen'");
 
-            const adminCheck = db.exec("SELECT * FROM users WHERE username = 'admin'");
+            // 2. Chỉ tạo nếu chưa có user 'sennguyen'
             if (adminCheck.length === 0) {
                 const salt = bcrypt.genSaltSync(10);
-                const adminPasswordHash = bcrypt.hashSync('admin123', salt);
-                db.run("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ['admin', adminPasswordHash, 'admin']);
-                console.log('Tài khoản admin mặc định đã được tạo.');
-                await saveDatabase(db); // Lưu ngay sau khi tạo admin
+                // 3. Thay đổi mật khẩu cần mã hóa
+                const adminPasswordHash = bcrypt.hashSync('HongHanh2082003', salt);
+                // 4. Thay đổi thông tin user được thêm vào
+                db.run("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", ['sennguyen', adminPasswordHash, 'admin']);
+                // 5. Cập nhật thông báo log
+                console.log('Tài khoản admin mặc định (sennguyen) đã được tạo.');
+                await saveDatabase(db);
             }
 
             console.log('Khởi tạo CSDL thành công.');
